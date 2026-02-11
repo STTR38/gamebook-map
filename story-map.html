@@ -1,0 +1,2532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Story Map - Book Adventure Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #ffffff;
+            color: #333;
+            overflow: hidden;
+        }
+
+        #container {
+            display: flex;
+            height: 100vh;
+        }
+
+        #sidebar {
+            width: 300px;
+            background: #f5f5f5;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 2px solid #ddd;
+        }
+
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: #ffffff;
+        }
+
+        canvas {
+            cursor: crosshair;
+            display: block;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #2c5aa0;
+        }
+
+        h2 {
+            font-size: 18px;
+            margin: 20px 0 10px 0;
+            color: #2c5aa0;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin: 5px 0;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #357abd;
+        }
+
+        button.active {
+            background: #2c5aa0;
+        }
+
+        button.active:hover {
+            background: #1e4278;
+        }
+
+        .mode-indicator {
+            padding: 10px;
+            background: #e8f0fe;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .point-item {
+            background: #e8f0fe;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .point-item:hover {
+            background: #d0e3ff;
+        }
+
+        .point-item.selected {
+            background: #4a90e2;
+            color: white;
+        }
+
+        .point-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #2c5aa0;
+        }
+
+        .point-item.selected .point-name {
+            color: white;
+        }
+
+        .point-notes {
+            font-size: 12px;
+            color: #666;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .point-item.selected .point-notes {
+            color: #e8f0fe;
+        }
+
+        #note-editor {
+            position: absolute;
+            background: #ffffff;
+            border: 2px solid #4a90e2;
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 300px;
+            max-width: 400px;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        #connection-editor {
+            position: absolute;
+            background: #ffffff;
+            border: 2px solid #4a90e2;
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 300px;
+            max-width: 400px;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        #confirm-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #ffffff;
+            border: 2px solid #4a90e2;
+            border-radius: 8px;
+            padding: 20px;
+            min-width: 300px;
+            max-width: 400px;
+            display: none;
+            z-index: 2000;
+            box-shadow: 0 4px 30px rgba(0,0,0,0.3);
+        }
+
+        #confirm-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 1999;
+        }
+
+        #confirm-dialog h3 {
+            margin-bottom: 15px;
+            color: #2c5aa0;
+        }
+
+        #confirm-dialog p {
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .confirm-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .confirm-buttons button {
+            flex: 1;
+        }
+
+        #note-editor h3 {
+            margin-bottom: 10px;
+            color: #2c5aa0;
+        }
+
+        #note-editor input,
+        #note-editor textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 8px 0;
+            background: #f5f5f5;
+            border: 1px solid #4a90e2;
+            border-radius: 4px;
+            color: #333;
+            font-family: inherit;
+        }
+
+        #note-editor textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        #note-editor select {
+            width: 100%;
+            padding: 8px;
+            margin: 8px 0;
+            background: #f5f5f5;
+            border: 1px solid #4a90e2;
+            border-radius: 4px;
+            color: #333;
+            font-family: inherit;
+        }
+
+        #connection-editor select,
+        #connection-editor label {
+            width: 100%;
+            padding: 8px;
+            margin: 8px 0;
+            background: #f5f5f5;
+            border: 1px solid #4a90e2;
+            border-radius: 4px;
+            color: #333;
+            font-family: inherit;
+        }
+
+        #connection-editor label {
+            background: transparent;
+            border: none;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #connection-editor input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .editor-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .editor-buttons button {
+            flex: 1;
+        }
+
+        .info-text {
+            font-size: 12px;
+            color: #666;
+            line-height: 1.6;
+            margin: 10px 0;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .export-buttons button {
+            flex: 1;
+            font-size: 12px;
+            padding: 8px;
+        }
+
+        .curve-hint {
+            font-size: 11px;
+            color: #888;
+            font-style: italic;
+            margin-top: 5px;
+        }
+
+        .monster-item, .inventory-item {
+            background: #f0f0f0;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .monster-item {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .monster-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .monster-name {
+            font-weight: 600;
+            color: #e74c3c;
+        }
+
+        .monster-stats {
+            display: flex;
+            gap: 10px;
+            font-size: 11px;
+            color: #555;
+        }
+
+        .stat-label {
+            font-weight: 600;
+        }
+
+        .delete-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 3px 8px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .delete-btn:hover {
+            background: #c0392b;
+        }
+
+        .inventory-item {
+            color: #2c5aa0;
+            font-weight: 500;
+        }
+
+        h4 {
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="sidebar">
+            <h1>📚 Story Map</h1>
+            
+            <div class="mode-indicator" id="modeIndicator">Mode: Add Points</div>
+            
+            <div class="controls">
+                <button id="addPointBtn" class="active">➕ Add Points</button>
+                <button id="linkPointsBtn">🔗 Link Points</button>
+                <button id="dragPointBtn">✋ Drag Points</button>
+                <button id="deleteBtn">🗑️ Delete</button>
+            </div>
+
+            <div class="controls">
+                <h2>Data</h2>
+                <button id="clearBtn">Clear All</button>
+                <div class="export-buttons">
+                    <button id="saveBtn">Save</button>
+                    <button id="loadBtn">Load</button>
+                </div>
+            </div>
+
+            <div class="controls">
+                <h2>🔍 Search</h2>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="searchInput" placeholder="Search points, monsters, items..." style="flex: 1; padding: 8px; margin: 0; background: #fff; border: 1px solid #4a90e2; border-radius: 4px; color: #333; font-family: inherit;">
+                    <button id="clearSearchBtn" style="width: auto; padding: 8px 12px; margin: 0; background: #95a5a6; font-size: 12px;">✕</button>
+                </div>
+                <div style="font-size: 11px; color: #666; margin-top: 5px;">
+                    <span id="searchResults">Type to search...</span>
+                </div>
+            </div>
+
+            <div class="controls">
+                <h2>Textures</h2>
+                <div style="font-size: 11px; color: #666; margin-bottom: 8px;">
+                    Textures générées automatiquement ✨<br>
+                    Vous pouvez remplacer avec vos propres images :
+                </div>
+                <button id="loadCaveTexture" style="font-size: 12px; padding: 8px;">🏔️ Cave</button>
+                <button id="loadWaterTexture" style="font-size: 12px; padding: 8px;">🌊 Water</button>
+                <button id="loadDirtTexture" style="font-size: 12px; padding: 8px;">🛤️ Dirt</button>
+                <button id="loadStairsTexture" style="font-size: 12px; padding: 8px;">🪜 Stairs</button>
+            </div>
+
+            <div class="info-text">
+                <strong>Comment utiliser :</strong><br>
+                • Cliquez "Add Points" puis sur le canevas pour créer des points<br>
+                • Cliquez "Link Points" puis sur deux points pour les connecter<br>
+                • <strong>Clic droit sur une connexion</strong> pour changer le type ou activer la courbe<br>
+                • Utilisez "Drag Points" pour déplacer les points et les courbes<br>
+                • Cliquez sur un point pour éditer son nom/notes<br>
+                • <strong>Molette</strong> pour zoomer, <strong>Shift+Drag</strong> pour déplacer la vue<br>
+                • <strong>Boussole</strong> : cliquez et tournez pour changer l'orientation<br>
+                • Mode Delete pour supprimer points/liaisons
+            </div>
+
+            <h2>Points d'intérêt</h2>
+            <div id="pointsList"></div>
+        </div>
+
+        <div id="canvas-container">
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <!-- Note Editor -->
+        <div id="note-editor" style="overflow-y: scroll; max-height: 450px;">
+            <h3>Edit Point</h3>
+            <input type="text" id="pointName" placeholder="Point name">
+            <textarea id="pointNotes" placeholder="Add notes about this story point..."></textarea>
+            
+            <label style="margin-top: 10px; display: block;">Forme du point:</label>
+            <select id="pointShape" style="width: 100%; padding: 8px; margin: 8px 0; background: #f5f5f5; border: 1px solid #4a90e2; border-radius: 4px;">
+                <option value="circle">⚫ Cercle</option>
+                <option value="square">⬛ Carré</option>
+                <option value="triangle">🔺 Triangle</option>
+            </select>
+            
+            <h4 style="margin-top: 15px; margin-bottom: 8px; color: #2c5aa0;">⚔️ Monsters</h4>
+            <div id="monstersList" style="max-height: 150px; overflow-y: auto; margin-bottom: 10px;"></div>
+            <button id="addMonsterBtn" style="width: 100%; padding: 8px; font-size: 12px; background: #27ae60;">+ Add Monster</button>
+            
+            <h4 style="margin-top: 15px; margin-bottom: 8px; color: #2c5aa0;">🎒 Inventory</h4>
+            <div id="inventoryList" style="max-height: 100px; overflow-y: auto; margin-bottom: 10px;"></div>
+            <div style="display: flex; gap: 5px;">
+                <input type="text" id="newInventoryItem" placeholder="Item name" style="flex: 1; margin: 0;">
+                <button id="addInventoryBtn" style="width: auto; padding: 8px 15px; margin: 0; font-size: 12px; background: #3498db;">+ Add</button>
+            </div>
+            
+            <div class="editor-buttons">
+                <button id="saveNoteBtn">Save</button>
+                <button id="cancelNoteBtn">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Connection Editor -->
+        <div id="connection-editor">
+            <h3>Edit Connection</h3>
+            <label>Type de chemin:</label>
+            <select id="pathType">
+                <option value="normal">Normal Path</option>
+                <option value="cave">🏔️ Cave</option>
+                <option value="water">🌊 Water</option>
+                <option value="dirt">🛤️ Dirt Path</option>
+                <option value="stairs">🪜 Stairs</option>
+            </select>
+            <label>Couleur (Normal Path seulement):</label>
+            <select id="pathColor">
+                <option value="blue">🔵 Bleu</option>
+                <option value="green">🟢 Vert</option>
+                <option value="red">🔴 Rouge</option>
+            </select>
+            <label>
+                <input type="checkbox" id="curvedCheckbox">
+                Ligne courbe
+            </label>
+            <div class="curve-hint">Activez pour créer une courbe. Utilisez "Drag Points" pour ajuster.</div>
+            <div class="editor-buttons">
+                <button id="saveConnectionBtn">Save</button>
+                <button id="deleteConnectionBtn" style="background: #e74c3c;">Delete</button>
+                <button id="cancelConnectionBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Confirm Dialog -->
+    <div id="confirm-overlay"></div>
+    <div id="confirm-dialog">
+        <h3>Confirmation</h3>
+        <p id="confirm-message"></p>
+        <div class="confirm-buttons">
+            <button id="confirm-yes" style="background: #e74c3c;">Oui, supprimer</button>
+            <button id="confirm-no">Annuler</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const noteEditor = document.getElementById('note-editor');
+
+        // State - MUST be declared before any functions that use them
+        let mode = 'add'; // 'add', 'link', 'drag', 'delete'
+        let points = [];
+        let connections = [];
+        let nextId = 1;
+        let selectedPoint = null;
+        let connectingFrom = null;
+        let linkStart = null;
+        let dragging = false;
+        let dragPoint = null;
+        let editingPoint = null;
+        let editingConnection = null;
+        let draggingControlPoint = null;
+        let dragControlPoint = null;
+
+        // Zoom and pan state
+        let zoom = 1;
+        let panX = 0;
+        let panY = 0;
+        let isPanning = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+
+        // Compass state
+        let compassRotation = 0; // Rotation in radians
+        let compassDragging = false;
+        const compassX = 80; // Position from left
+        const compassY = 80; // Position from top
+        const compassRadius = 50;
+
+        // Search state
+        let searchQuery = '';
+        let highlightedPoints = new Set(); // Set of point IDs to highlight
+
+        // Custom confirm dialog
+        function showConfirmDialog(message) {
+            return new Promise((resolve) => {
+                const overlay = document.getElementById('confirm-overlay');
+                const dialog = document.getElementById('confirm-dialog');
+                const messageEl = document.getElementById('confirm-message');
+                const yesBtn = document.getElementById('confirm-yes');
+                const noBtn = document.getElementById('confirm-no');
+
+                messageEl.textContent = message;
+                overlay.style.display = 'block';
+                dialog.style.display = 'block';
+
+                function cleanup() {
+                    overlay.style.display = 'none';
+                    dialog.style.display = 'none';
+                    yesBtn.onclick = null;
+                    noBtn.onclick = null;
+                    overlay.onclick = null;
+                }
+
+                yesBtn.onclick = () => {
+                    cleanup();
+                    resolve(true);
+                };
+
+                noBtn.onclick = () => {
+                    cleanup();
+                    resolve(false);
+                };
+
+                overlay.onclick = () => {
+                    cleanup();
+                    resolve(false);
+                };
+            });
+        }
+
+        // Path textures - Generated procedurally
+        const pathTextures = {
+            cave: null,
+            water: null,
+            dirt: null,
+            stairs: null
+        };
+
+        // Generate procedural textures
+        function generateTextures() {
+            // Cave texture - rocky, brown with dark cracks
+            pathTextures.cave = createCaveTexture();
+            
+            // Water texture - wavy blue pattern
+            pathTextures.water = createWaterTexture();
+            
+            // Dirt texture - brown with small stones
+            pathTextures.dirt = createDirtTexture();
+            
+            // Stairs texture - step pattern
+            pathTextures.stairs = createStairsTexture();
+        }
+
+        function createCaveTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            
+            // Base brown color
+            ctx.fillStyle = '#6b4423';
+            ctx.fillRect(0, 0, 64, 64);
+            
+            // Add darker patches (rocks)
+            for (let i = 0; i < 20; i++) {
+                ctx.fillStyle = `rgba(59, 37, 19, ${0.3 + Math.random() * 0.4})`;
+                const x = Math.random() * 64;
+                const y = Math.random() * 64;
+                const size = 3 + Math.random() * 8;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Add lighter spots
+            for (let i = 0; i < 15; i++) {
+                ctx.fillStyle = `rgba(139, 90, 43, ${0.2 + Math.random() * 0.3})`;
+                const x = Math.random() * 64;
+                const y = Math.random() * 64;
+                const size = 2 + Math.random() * 5;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Add cracks
+            ctx.strokeStyle = 'rgba(30, 20, 10, 0.5)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 8; i++) {
+                ctx.beginPath();
+                ctx.moveTo(Math.random() * 64, Math.random() * 64);
+                ctx.lineTo(Math.random() * 64, Math.random() * 64);
+                ctx.stroke();
+            }
+            
+            return canvas;
+        }
+
+        function createWaterTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            
+            // Base blue gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, 64);
+            gradient.addColorStop(0, '#1e90ff');
+            gradient.addColorStop(0.5, '#4169e1');
+            gradient.addColorStop(1, '#1e90ff');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 64, 64);
+            
+            // Add wave patterns
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            for (let y = 0; y < 64; y += 16) {
+                ctx.beginPath();
+                for (let x = 0; x <= 64; x += 4) {
+                    const wave = Math.sin((x + y) * 0.1) * 3;
+                    if (x === 0) {
+                        ctx.moveTo(x, y + wave);
+                    } else {
+                        ctx.lineTo(x, y + wave);
+                    }
+                }
+                ctx.stroke();
+            }
+            
+            // Add light reflections
+            for (let i = 0; i < 10; i++) {
+                ctx.fillStyle = `rgba(173, 216, 230, ${0.2 + Math.random() * 0.3})`;
+                const x = Math.random() * 64;
+                const y = Math.random() * 64;
+                ctx.beginPath();
+                ctx.arc(x, y, 2 + Math.random() * 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            return canvas;
+        }
+
+        function createDirtTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            
+            // Base dirt color
+            ctx.fillStyle = '#8b6914';
+            ctx.fillRect(0, 0, 64, 64);
+            
+            // Add varied dirt tones
+            for (let i = 0; i < 30; i++) {
+                const colors = ['#a0792c', '#6b4e1f', '#9b7653', '#7a5c3d'];
+                ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)] + 
+                               Math.floor(40 + Math.random() * 80).toString(16);
+                const x = Math.random() * 64;
+                const y = Math.random() * 64;
+                const size = 3 + Math.random() * 6;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Add small pebbles
+            for (let i = 0; i < 20; i++) {
+                ctx.fillStyle = `rgba(${120 + Math.random() * 50}, ${100 + Math.random() * 40}, 80, 0.6)`;
+                const x = Math.random() * 64;
+                const y = Math.random() * 64;
+                const size = 1 + Math.random() * 3;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            return canvas;
+        }
+
+        function createStairsTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            
+            // Base stone color
+            ctx.fillStyle = '#808080';
+            ctx.fillRect(0, 0, 64, 64);
+            
+            // Draw steps (diagonal pattern)
+            const stepHeight = 8;
+            const numSteps = 8;
+            
+            for (let i = 0; i < numSteps; i++) {
+                const y = i * stepHeight;
+                
+                // Step surface (lighter)
+                ctx.fillStyle = '#9a9a9a';
+                ctx.fillRect(0, y, 64, stepHeight * 0.6);
+                
+                // Step edge (darker)
+                ctx.fillStyle = '#606060';
+                ctx.fillRect(0, y + stepHeight * 0.6, 64, stepHeight * 0.4);
+                
+                // Add edge highlight
+                ctx.strokeStyle = 'rgba(180, 180, 180, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(64, y);
+                ctx.stroke();
+            }
+            
+            // Add stone texture
+            for (let i = 0; i < 25; i++) {
+                ctx.fillStyle = `rgba(${100 + Math.random() * 50}, ${100 + Math.random() * 50}, ${100 + Math.random() * 50}, 0.3)`;
+                const x = Math.random() * 64;
+                const y = Math.random() * 64;
+                const size = 1 + Math.random() * 3;
+                ctx.fillRect(x, y, size, size);
+            }
+            
+            return canvas;
+        }
+
+        // Generate all textures on load
+        generateTextures();
+
+        // Path type styles with wider paths
+        const pathStyles = {
+            normal: { color: '#4a90e2', width: 8, dash: [], texture: null },
+            cave: { color: '#8b4513', width: 12, dash: [], texture: 'cave' },
+            water: { color: '#1e90ff', width: 12, dash: [], texture: 'water' },
+            dirt: { color: '#d2691e', width: 10, dash: [], texture: 'dirt' },
+            stairs: { color: '#696969', width: 12, dash: [], texture: 'stairs' }
+        };
+
+        // Function to draw textured path along curve or straight line
+        function drawTexturedPath(ctx, p1, p2, conn, style) {
+            const isCurved = conn.curved && conn.controlX !== undefined && conn.controlY !== undefined;
+            
+            // If we have a texture loaded, use it; otherwise use the decorative art
+            const textureType = style.texture;
+            const hasTexture = textureType && pathTextures[textureType];
+            
+            if (hasTexture) {
+                // Draw path using texture pattern
+                drawWithTexture(ctx, p1, p2, conn, style, pathTextures[textureType]);
+            } else {
+                // Fallback to decorative art
+                drawPathArt(ctx, textureType || 'normal', p1, p2, conn);
+            }
+        }
+
+        // Function to draw a path with texture following the curve
+        function drawWithTexture(ctx, p1, p2, conn, style, textureImg) {
+            const isCurved = conn.curved && conn.controlX !== undefined && conn.controlY !== undefined;
+            const textureType = style.texture;
+            
+            ctx.save();
+            
+            // Create a pattern from the texture
+            const pattern = ctx.createPattern(textureImg, 'repeat');
+            
+            // Draw different path shapes based on type
+            if (textureType === 'cave') {
+                drawCavePath(ctx, p1, p2, conn, pattern, style.width);
+            } else if (textureType === 'water') {
+                drawWaterPath(ctx, p1, p2, conn, pattern, style.width);
+            } else if (textureType === 'stairs') {
+                drawStairsPath(ctx, p1, p2, conn, pattern, style.width);
+            } else if (textureType === 'dirt') {
+                drawDirtPath(ctx, p1, p2, conn, pattern, style.width);
+            } else {
+                // Normal path
+                ctx.strokeStyle = pattern;
+                ctx.lineWidth = style.width;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                if (isCurved) {
+                    ctx.quadraticCurveTo(conn.controlX, conn.controlY, p2.x, p2.y);
+                } else {
+                    ctx.lineTo(p2.x, p2.y);
+                }
+                ctx.stroke();
+            }
+            
+            ctx.restore();
+        }
+
+        // Cave path - jagged/zigzag like rocky terrain
+        function drawCavePath(ctx, p1, p2, conn, pattern, width) {
+            const isCurved = conn.curved && conn.controlX !== undefined && conn.controlY !== undefined;
+            const segments = 40;
+            const zigzagAmount = 8; // How much to zigzag
+            
+            ctx.strokeStyle = pattern;
+            ctx.lineWidth = width;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            
+            for (let i = 0; i <= segments; i++) {
+                const t = i / segments;
+                let x, y;
+                
+                if (isCurved) {
+                    x = (1-t)*(1-t)*p1.x + 2*(1-t)*t*conn.controlX + t*t*p2.x;
+                    y = (1-t)*(1-t)*p1.y + 2*(1-t)*t*conn.controlY + t*t*p2.y;
+                } else {
+                    x = p1.x + t * (p2.x - p1.x);
+                    y = p1.y + t * (p2.y - p1.y);
+                }
+                
+                // Add zigzag perpendicular to path
+                const angle = isCurved 
+                    ? Math.atan2(
+                        2*(1-t)*(conn.controlY - p1.y) + 2*t*(p2.y - conn.controlY),
+                        2*(1-t)*(conn.controlX - p1.x) + 2*t*(p2.x - conn.controlX)
+                    )
+                    : Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                
+                const perpAngle = angle + Math.PI / 2;
+                const zigzag = Math.sin(i * 0.8) * zigzagAmount;
+                x += Math.cos(perpAngle) * zigzag;
+                y += Math.sin(perpAngle) * zigzag;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.stroke();
+        }
+
+        // Water path - smooth waves with bubbles
+        function drawWaterPath(ctx, p1, p2, conn, pattern, width) {
+            const isCurved = conn.curved && conn.controlX !== undefined && conn.controlY !== undefined;
+            const segments = 50;
+            const waveAmount = 6;
+            
+            ctx.strokeStyle = pattern;
+            ctx.lineWidth = width;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            
+            // Draw wavy path
+            for (let i = 0; i <= segments; i++) {
+                const t = i / segments;
+                let x, y;
+                
+                if (isCurved) {
+                    x = (1-t)*(1-t)*p1.x + 2*(1-t)*t*conn.controlX + t*t*p2.x;
+                    y = (1-t)*(1-t)*p1.y + 2*(1-t)*t*conn.controlY + t*t*p2.y;
+                } else {
+                    x = p1.x + t * (p2.x - p1.x);
+                    y = p1.y + t * (p2.y - p1.y);
+                }
+                
+                // Add smooth wave perpendicular to path
+                const angle = isCurved 
+                    ? Math.atan2(
+                        2*(1-t)*(conn.controlY - p1.y) + 2*t*(p2.y - conn.controlY),
+                        2*(1-t)*(conn.controlX - p1.x) + 2*t*(p2.x - conn.controlX)
+                    )
+                    : Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                
+                const perpAngle = angle + Math.PI / 2;
+                const wave = Math.sin(i * 0.5) * waveAmount;
+                x += Math.cos(perpAngle) * wave;
+                y += Math.sin(perpAngle) * wave;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.stroke();
+            
+            // Add bubbles along the path
+            ctx.fillStyle = 'rgba(173, 216, 230, 0.4)';
+            for (let i = 0; i < 8; i++) {
+                const t = (i + Math.random() * 0.5) / 8;
+                let x, y;
+                
+                if (isCurved) {
+                    x = (1-t)*(1-t)*p1.x + 2*(1-t)*t*conn.controlX + t*t*p2.x;
+                    y = (1-t)*(1-t)*p1.y + 2*(1-t)*t*conn.controlY + t*t*p2.y;
+                } else {
+                    x = p1.x + t * (p2.x - p1.x);
+                    y = p1.y + t * (p2.y - p1.y);
+                }
+                
+                const bubbleSize = 3 + Math.random() * 4;
+                ctx.beginPath();
+                ctx.arc(x + (Math.random() - 0.5) * width, y + (Math.random() - 0.5) * width, bubbleSize, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Bubble highlight
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.beginPath();
+                ctx.arc(x + (Math.random() - 0.5) * width - bubbleSize/3, y + (Math.random() - 0.5) * width - bubbleSize/3, bubbleSize/3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = 'rgba(173, 216, 230, 0.4)';
+            }
+        }
+
+        // Stairs path - angular zigzag like steps
+        function drawStairsPath(ctx, p1, p2, conn, pattern, width) {
+            const isCurved = conn.curved && conn.controlX !== undefined && conn.controlY !== undefined;
+            const numSteps = 12;
+            
+            ctx.strokeStyle = pattern;
+            ctx.lineWidth = width;
+            ctx.lineCap = 'square';
+            ctx.lineJoin = 'miter';
+            ctx.beginPath();
+            
+            for (let i = 0; i <= numSteps; i++) {
+                const t = i / numSteps;
+                let x, y;
+                
+                if (isCurved) {
+                    x = (1-t)*(1-t)*p1.x + 2*(1-t)*t*conn.controlX + t*t*p2.x;
+                    y = (1-t)*(1-t)*p1.y + 2*(1-t)*t*conn.controlY + t*t*p2.y;
+                } else {
+                    x = p1.x + t * (p2.x - p1.x);
+                    y = p1.y + t * (p2.y - p1.y);
+                }
+                
+                // Create step pattern
+                const angle = isCurved 
+                    ? Math.atan2(
+                        2*(1-t)*(conn.controlY - p1.y) + 2*t*(p2.y - conn.controlY),
+                        2*(1-t)*(conn.controlX - p1.x) + 2*t*(p2.x - conn.controlX)
+                    )
+                    : Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                
+                const perpAngle = angle + Math.PI / 2;
+                const stepOffset = (i % 2 === 0 ? 1 : -1) * 5;
+                x += Math.cos(perpAngle) * stepOffset;
+                y += Math.sin(perpAngle) * stepOffset;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.stroke();
+        }
+
+        // Dirt path - irregular bumpy terrain
+        function drawDirtPath(ctx, p1, p2, conn, pattern, width) {
+            const isCurved = conn.curved && conn.controlX !== undefined && conn.controlY !== undefined;
+            const segments = 40;
+            
+            ctx.strokeStyle = pattern;
+            ctx.lineWidth = width;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            
+            for (let i = 0; i <= segments; i++) {
+                const t = i / segments;
+                let x, y;
+                
+                if (isCurved) {
+                    x = (1-t)*(1-t)*p1.x + 2*(1-t)*t*conn.controlX + t*t*p2.x;
+                    y = (1-t)*(1-t)*p1.y + 2*(1-t)*t*conn.controlY + t*t*p2.y;
+                } else {
+                    x = p1.x + t * (p2.x - p1.x);
+                    y = p1.y + t * (p2.y - p1.y);
+                }
+                
+                // Add irregular bumps
+                const angle = isCurved 
+                    ? Math.atan2(
+                        2*(1-t)*(conn.controlY - p1.y) + 2*t*(p2.y - conn.controlY),
+                        2*(1-t)*(conn.controlX - p1.x) + 2*t*(p2.x - conn.controlX)
+                    )
+                    : Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                
+                const perpAngle = angle + Math.PI / 2;
+                // Multiple frequency bumps for organic look
+                const bump = Math.sin(i * 0.7) * 4 + Math.sin(i * 1.5) * 2 + Math.sin(i * 3) * 1;
+                x += Math.cos(perpAngle) * bump;
+                y += Math.sin(perpAngle) * bump;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.stroke();
+            
+            // Add small rocks/pebbles along dirt path
+            ctx.fillStyle = 'rgba(100, 80, 60, 0.4)';
+            for (let i = 0; i < 10; i++) {
+                const t = Math.random();
+                let x, y;
+                
+                if (isCurved) {
+                    x = (1-t)*(1-t)*p1.x + 2*(1-t)*t*conn.controlX + t*t*p2.x;
+                    y = (1-t)*(1-t)*p1.y + 2*(1-t)*t*conn.controlY + t*t*p2.y;
+                } else {
+                    x = p1.x + t * (p2.x - p1.x);
+                    y = p1.y + t * (p2.y - p1.y);
+                }
+                
+                const pebbleSize = 1 + Math.random() * 2;
+                ctx.beginPath();
+                ctx.arc(x + (Math.random() - 0.5) * width * 1.5, y + (Math.random() - 0.5) * width * 1.5, pebbleSize, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Function to draw art along path (works with curves!) - FALLBACK when no texture
+        function drawPathArt(ctx, pathType, p1, p2, conn) {
+            if (pathType === 'normal') return; // No art for normal paths
+            
+            const isCurved = conn.curved && conn.controlX !== undefined && conn.controlY !== undefined;
+            
+            if (pathType === 'cave') {
+                // Draw mountain/cave symbols along the path
+                const numSymbols = 4;
+                for (let i = 0; i < numSymbols; i++) {
+                    const t = (i + 1) / (numSymbols + 1);
+                    let x, y, angle;
+                    
+                    if (isCurved) {
+                        x = (1-t)*(1-t)*p1.x + 2*(1-t)*t*conn.controlX + t*t*p2.x;
+                        y = (1-t)*(1-t)*p1.y + 2*(1-t)*t*conn.controlY + t*t*p2.y;
+                        const dt = 0.01;
+                        const t1 = Math.max(0, t - dt);
+                        const x1 = (1-t1)*(1-t1)*p1.x + 2*(1-t1)*t1*conn.controlX + t1*t1*p2.x;
+                        const y1 = (1-t1)*(1-t1)*p1.y + 2*(1-t1)*t1*conn.controlY + t1*t1*p2.y;
+                        angle = Math.atan2(y - y1, x - x1);
+                    } else {
+                        x = p1.x + t * (p2.x - p1.x);
+                        y = p1.y + t * (p2.y - p1.y);
+                        angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                    }
+                    
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.rotate(angle + Math.PI / 2);
+                    
+                    // Draw rocky cave texture
+                    ctx.fillStyle = '#654321';
+                    ctx.beginPath();
+                    ctx.moveTo(0, -10);
+                    ctx.lineTo(-8, 8);
+                    ctx.lineTo(8, 8);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    // Add darker shading
+                    ctx.fillStyle = '#4a3319';
+                    ctx.beginPath();
+                    ctx.moveTo(0, -10);
+                    ctx.lineTo(-4, -2);
+                    ctx.lineTo(4, -2);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    ctx.restore();
+                }
+            } else if (pathType === 'water') {
+                // Draw water waves along the path
+                const numWaves = 6;
+                for (let i = 0; i < numWaves; i++) {
+                    const t = (i + 1) / (numWaves + 1);
+                    let x, y, angle;
+                    
+                    if (isCurved) {
+                        x = (1-t)*(1-t)*p1.x + 2*(1-t)*t*conn.controlX + t*t*p2.x;
+                        y = (1-t)*(1-t)*p1.y + 2*(1-t)*t*conn.controlY + t*t*p2.y;
+                        const dt = 0.01;
+                        const t1 = Math.max(0, t - dt);
+                        const x1 = (1-t1)*(1-t1)*p1.x + 2*(1-t1)*t1*conn.controlX + t1*t1*p2.x;
+                        const y1 = (1-t1)*(1-t1)*p1.y + 2*(1-t1)*t1*conn.controlY + t1*t1*p2.y;
+                        angle = Math.atan2(y - y1, x - x1);
+                    } else {
+                        x = p1.x + t * (p2.x - p1.x);
+                        y = p1.y + t * (p2.y - p1.y);
+                        angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                    }
+                    
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.rotate(angle);
+                    
+                    // Draw flowing water effect
+                    ctx.strokeStyle = '#0066cc';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(-5, 0, 5, 0, Math.PI, false);
+                    ctx.arc(5, 0, 5, 0, Math.PI, false);
+                    ctx.stroke();
+                    
+                    // Add highlight
+                    ctx.strokeStyle = '#33aaff';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(-5, -2, 3, 0, Math.PI, false);
+                    ctx.stroke();
+                    
+                    ctx.restore();
+                }
+            } else if (pathType === 'dirt') {
+                // Draw dirt road texture with stones
+                const numStones = 8;
+                for (let i = 0; i < numStones; i++) {
+                    const t = (i + 1) / (numStones + 1);
+                    let x, y, angle;
+                    
+                    if (isCurved) {
+                        x = (1-t)*(1-t)*p1.x + 2*(1-t)*t*conn.controlX + t*t*p2.x;
+                        y = (1-t)*(1-t)*p1.y + 2*(1-t)*t*conn.controlY + t*t*p2.y;
+                        const dt = 0.01;
+                        const t1 = Math.max(0, t - dt);
+                        const x1 = (1-t1)*(1-t1)*p1.x + 2*(1-t1)*t1*conn.controlX + t1*t1*p2.x;
+                        const y1 = (1-t1)*(1-t1)*p1.y + 2*(1-t1)*t1*conn.controlY + t1*t1*p2.y;
+                        angle = Math.atan2(y - y1, x - x1);
+                    } else {
+                        x = p1.x + t * (p2.x - p1.x);
+                        y = p1.y + t * (p2.y - p1.y);
+                        angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                    }
+                    
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.rotate(angle);
+                    
+                    // Draw dirt texture with stones
+                    ctx.fillStyle = '#8B7355';
+                    ctx.beginPath();
+                    ctx.arc(-4, 0, 2.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#A0826D';
+                    ctx.beginPath();
+                    ctx.arc(4, 1, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#6B5D52';
+                    ctx.beginPath();
+                    ctx.arc(0, -3, 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.restore();
+                }
+            } else if (pathType === 'stairs') {
+                // Draw wooden stairs along the path
+                const numSteps = 5;
+                for (let i = 0; i < numSteps; i++) {
+                    const t = (i + 1) / (numSteps + 1);
+                    let x, y, angle;
+                    
+                    if (isCurved) {
+                        x = (1-t)*(1-t)*p1.x + 2*(1-t)*t*conn.controlX + t*t*p2.x;
+                        y = (1-t)*(1-t)*p1.y + 2*(1-t)*t*conn.controlY + t*t*p2.y;
+                        const dt = 0.01;
+                        const t1 = Math.max(0, t - dt);
+                        const x1 = (1-t1)*(1-t1)*p1.x + 2*(1-t1)*t1*conn.controlX + t1*t1*p2.x;
+                        const y1 = (1-t1)*(1-t1)*p1.y + 2*(1-t1)*t1*conn.controlY + t1*t1*p2.y;
+                        angle = Math.atan2(y - y1, x - x1);
+                    } else {
+                        x = p1.x + t * (p2.x - p1.x);
+                        y = p1.y + t * (p2.y - p1.y);
+                        angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                    }
+                    
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.rotate(angle);
+                    
+                    // Draw wooden step
+                    ctx.fillStyle = '#8B6914';
+                    ctx.fillRect(-8, -5, 16, 4);
+                    
+                    // Add wood grain
+                    ctx.strokeStyle = '#6B4423';
+                    ctx.lineWidth = 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(-8, -3);
+                    ctx.lineTo(8, -3);
+                    ctx.stroke();
+                    
+                    // Add shadow
+                    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                    ctx.fillRect(-8, 1, 16, 2);
+                    
+                    ctx.restore();
+                }
+            }
+        }
+
+        // Set canvas size
+        function resizeCanvas() {
+            const container = document.getElementById('canvas-container');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            draw();
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Transform screen coordinates to world coordinates
+        function screenToWorld(screenX, screenY) {
+            // Translate to origin
+            let x = screenX - canvas.width / 2 - panX;
+            let y = screenY - canvas.height / 2 - panY;
+            
+            // Reverse rotation
+            const cos = Math.cos(-compassRotation);
+            const sin = Math.sin(-compassRotation);
+            const rotatedX = x * cos - y * sin;
+            const rotatedY = x * sin + y * cos;
+            
+            // Apply inverse zoom and translate back
+            return {
+                x: rotatedX / zoom + canvas.width / 2,
+                y: rotatedY / zoom + canvas.height / 2
+            };
+        }
+
+        // Transform world coordinates to screen coordinates
+        function worldToScreen(worldX, worldY) {
+            // Translate from world center
+            let x = (worldX - canvas.width / 2) * zoom;
+            let y = (worldY - canvas.height / 2) * zoom;
+            
+            // Apply rotation
+            const cos = Math.cos(compassRotation);
+            const sin = Math.sin(compassRotation);
+            const rotatedX = x * cos - y * sin;
+            const rotatedY = x * sin + y * cos;
+            
+            // Translate to screen position
+            return {
+                x: rotatedX + canvas.width / 2 + panX,
+                y: rotatedY + canvas.height / 2 + panY
+            };
+        }
+
+        // Apply zoom and pan transformation to context
+        function applyTransform(ctx) {
+            ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+            ctx.translate(canvas.width / 2 + panX, canvas.height / 2 + panY);
+            ctx.rotate(compassRotation); // Apply rotation from compass
+            ctx.scale(zoom, zoom);
+            ctx.translate(-canvas.width / 2, -canvas.height / 2);
+        }
+
+        // Draw compass rose
+        function drawCompass(ctx) {
+            // Save the current transform
+            ctx.save();
+            
+            // Reset to screen coordinates (no zoom/pan)
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            
+            // Draw compass background with a subtle glow
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.strokeStyle = '#2c5aa0';
+            ctx.lineWidth = 3;
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(compassX, compassY, compassRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            
+            // Draw compass ring
+            ctx.strokeStyle = '#4a90e2';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(compassX, compassY, compassRadius - 5, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Apply compass rotation
+            ctx.translate(compassX, compassY);
+            ctx.rotate(compassRotation);
+            
+            // Draw cardinal directions
+            const directions = [
+                { angle: 0, label: 'N', color: '#e74c3c' },
+                { angle: Math.PI / 2, label: 'E', color: '#333' },
+                { angle: Math.PI, label: 'S', color: '#333' },
+                { angle: 3 * Math.PI / 2, label: 'W', color: '#333' }
+            ];
+            
+            directions.forEach(dir => {
+                ctx.save();
+                ctx.rotate(dir.angle);
+                
+                // Draw tick mark
+                ctx.strokeStyle = dir.color;
+                ctx.lineWidth = dir.label === 'N' ? 3 : 2;
+                ctx.beginPath();
+                ctx.moveTo(0, -compassRadius + 10);
+                ctx.lineTo(0, -compassRadius + 20);
+                ctx.stroke();
+                
+                // Draw letter
+                ctx.fillStyle = dir.color;
+                ctx.font = dir.label === 'N' ? 'bold 16px Arial' : 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(dir.label, 0, -compassRadius + 30);
+                
+                ctx.restore();
+            });
+            
+            // Draw center arrow pointing north
+            ctx.fillStyle = '#e74c3c';
+            ctx.strokeStyle = '#c0392b';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, -compassRadius + 15);
+            ctx.lineTo(-8, -5);
+            ctx.lineTo(0, -10);
+            ctx.lineTo(8, -5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            
+            // Draw south arrow
+            ctx.fillStyle = '#95a5a6';
+            ctx.strokeStyle = '#7f8c8d';
+            ctx.beginPath();
+            ctx.moveTo(0, compassRadius - 15);
+            ctx.lineTo(-6, 5);
+            ctx.lineTo(6, 5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            
+            // Draw center dot
+            ctx.fillStyle = '#2c5aa0';
+            ctx.strokeStyle = '#1e4278';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(0, 0, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            // Draw rotation hint (small curved arrow at bottom)
+            ctx.strokeStyle = '#7f8c8d';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(0, compassRadius - 35, 8, Math.PI * 0.3, Math.PI * 0.7);
+            ctx.stroke();
+            // Arrow head
+            ctx.fillStyle = '#7f8c8d';
+            ctx.beginPath();
+            ctx.moveTo(-3, compassRadius - 30);
+            ctx.lineTo(-5, compassRadius - 33);
+            ctx.lineTo(-1, compassRadius - 32);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.restore();
+        }
+
+        // Check if point is inside compass
+        function isPointInCompass(x, y) {
+            const dx = x - compassX;
+            const dy = y - compassY;
+            return Math.sqrt(dx * dx + dy * dy) <= compassRadius;
+        }
+
+        // Search function
+        function performSearch(query) {
+            searchQuery = query.toLowerCase().trim();
+            highlightedPoints.clear();
+            
+            if (!searchQuery) {
+                document.getElementById('searchResults').textContent = 'Type to search...';
+                draw();
+                return;
+            }
+            
+            let matchCount = 0;
+            points.forEach(point => {
+                let matches = false;
+                
+                // Search in point name
+                if (point.name.toLowerCase().includes(searchQuery)) {
+                    matches = true;
+                }
+                
+                // Search in notes
+                if (point.notes && point.notes.toLowerCase().includes(searchQuery)) {
+                    matches = true;
+                }
+                
+                // Search in monsters
+                if (point.monsters) {
+                    point.monsters.forEach(monster => {
+                        if (monster.name.toLowerCase().includes(searchQuery)) {
+                            matches = true;
+                        }
+                    });
+                }
+                
+                // Search in inventory
+                if (point.inventory) {
+                    point.inventory.forEach(item => {
+                        if (item.toLowerCase().includes(searchQuery)) {
+                            matches = true;
+                        }
+                    });
+                }
+                
+                if (matches) {
+                    highlightedPoints.add(point.id);
+                    matchCount++;
+                }
+            });
+            
+            const resultsText = matchCount === 0 
+                ? 'No matches found' 
+                : `Found ${matchCount} point${matchCount !== 1 ? 's' : ''}`;
+            document.getElementById('searchResults').textContent = resultsText;
+            
+            draw();
+        }
+
+        // Mode buttons
+        document.getElementById('addPointBtn').addEventListener('click', () => setMode('add'));
+        document.getElementById('linkPointsBtn').addEventListener('click', () => setMode('link'));
+        document.getElementById('dragPointBtn').addEventListener('click', () => setMode('drag'));
+        document.getElementById('deleteBtn').addEventListener('click', () => setMode('delete'));
+
+        // Ensure DOM is ready before attaching critical event listeners
+        function initializeEventListeners() {
+            // Clear all - CRITICAL: Must work
+            const clearBtn = document.getElementById('clearBtn');
+            if (clearBtn) {
+                // Remove any existing listeners by cloning
+                const newClearBtn = clearBtn.cloneNode(true);
+                clearBtn.parentNode.replaceChild(newClearBtn, clearBtn);
+                
+                newClearBtn.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    console.log('Clear All clicked');
+                    console.log('Points before:', points.length);
+                    console.log('Connections before:', connections.length);
+                    
+                    const userConfirmed = await showConfirmDialog('Voulez-vous vraiment supprimer tous les points et connexions ? Cette action est irréversible.');
+                    console.log('User confirmed:', userConfirmed);
+                    
+                    if (userConfirmed) {
+                        console.log('Starting clear all...');
+                        
+                        // Reset all data
+                        points = [];
+                        connections = [];
+                        nextId = 1;
+                        
+                        console.log('Arrays cleared. Points:', points.length, 'Connections:', connections.length);
+                        
+                        // Reset selection states
+                        selectedPoint = null;
+                        linkStart = null;
+                        connectingFrom = null;
+                        dragging = false;
+                        dragPoint = null;
+                        draggingControlPoint = null;
+                        dragControlPoint = null;
+                        editingPoint = null;
+                        editingConnection = null;
+                        
+                        // Clear search
+                        highlightedPoints.clear();
+                        searchQuery = '';
+                        const searchInput = document.getElementById('searchInput');
+                        if (searchInput) searchInput.value = '';
+                        const searchResults = document.getElementById('searchResults');
+                        if (searchResults) searchResults.textContent = 'Type to search...';
+                        
+                        // Close editors
+                        closeNoteEditor();
+                        closeConnectionEditor();
+                        
+                        console.log('About to redraw...');
+                        
+                        // Update UI
+                        draw();
+                        updatePointsList();
+                        
+                        console.log('Clear All completed - Points:', points.length, 'Connections:', connections.length);
+                    } else {
+                        console.log('User cancelled clear all');
+                    }
+                }, true); // Use capture phase
+            } else {
+                console.error('Clear button not found!');
+            }
+        }
+
+        // Call initialization
+        initializeEventListeners();
+
+        function setMode(newMode) {
+            mode = newMode;
+            connectingFrom = null;
+            linkStart = null;
+            draggingControlPoint = null;
+            dragControlPoint = null;
+            
+            // Update button states
+            document.querySelectorAll('.controls button').forEach(btn => btn.classList.remove('active'));
+            const modeButtons = {
+                'add': 'addPointBtn',
+                'link': 'linkPointsBtn',
+                'drag': 'dragPointBtn',
+                'delete': 'deleteBtn'
+            };
+            if (modeButtons[mode]) {
+                document.getElementById(modeButtons[mode]).classList.add('active');
+            }
+            
+            // Update mode indicator
+            const modeNames = {
+                'add': 'Add Points',
+                'link': 'Link Points',
+                'drag': 'Drag Points',
+                'delete': 'Delete'
+            };
+            document.getElementById('modeIndicator').textContent = `Mode: ${modeNames[mode]}`;
+            
+            // Update cursor
+            canvas.style.cursor = mode === 'drag' ? 'move' : mode === 'delete' ? 'not-allowed' : 'crosshair';
+            
+            draw();
+        }
+
+        // Canvas interaction
+        canvas.addEventListener('mousedown', (e) => {
+            // Only handle left click for actions (button 0)
+            // Right click (button 2) is reserved for context menu/edit
+            if (e.button !== 0) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const screenX = e.clientX - rect.left;
+            const screenY = e.clientY - rect.top;
+
+            // Check if clicking on compass
+            if (isPointInCompass(screenX, screenY)) {
+                compassDragging = true;
+                return;
+            }
+
+            // Pan with middle mouse button or space + drag
+            if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
+                isPanning = true;
+                lastMouseX = screenX;
+                lastMouseY = screenY;
+                canvas.style.cursor = 'grabbing';
+                return;
+            }
+
+            // Transform to world coordinates
+            const world = screenToWorld(screenX, screenY);
+            const x = world.x;
+            const y = world.y;
+
+            if (mode === 'add') {
+                // Add new point
+                points.push({
+                    id: nextId++,
+                    x: x,
+                    y: y,
+                    name: `Point ${nextId - 1}`,
+                    notes: '',
+                    monsters: [], // Array of {name, attack, health}
+                    inventory: []  // Array of item names
+                });
+                updatePointsList();
+                draw();
+            } else if (mode === 'link') {
+                // Connect points
+                const clickedPoint = findPointAt(x, y);
+                if (clickedPoint) {
+                    if (!linkStart) {
+                        linkStart = clickedPoint;
+                        connectingFrom = clickedPoint;
+                        selectedPoint = clickedPoint;
+                    } else if (linkStart.id !== clickedPoint.id) {
+                        // Check if connection already exists
+                        const exists = connections.some(c => 
+                            (c.from === linkStart.id && c.to === clickedPoint.id) ||
+                            (c.from === clickedPoint.id && c.to === linkStart.id)
+                        );
+                        if (!exists) {
+                            connections.push({
+                                from: linkStart.id,
+                                to: clickedPoint.id,
+                                pathType: 'normal',
+                                curved: false
+                            });
+                        }
+                        linkStart = null;
+                        connectingFrom = null;
+                        selectedPoint = null;
+                    }
+                    draw();
+                }
+            } else if (mode === 'drag') {
+                // Check if clicking on a control point first
+                const controlPoint = findControlPointAt(x, y);
+                if (controlPoint) {
+                    draggingControlPoint = controlPoint;
+                    dragControlPoint = controlPoint;
+                    dragging = true;
+                } else {
+                    // Check if clicking on a regular point
+                    const clickedPoint = findPointAt(x, y);
+                    if (clickedPoint) {
+                        selectedPoint = clickedPoint;
+                        dragPoint = clickedPoint;
+                        dragging = true;
+                    }
+                }
+            } else if (mode === 'delete') {
+                // Delete point
+                const clickedPoint = findPointAt(x, y);
+                if (clickedPoint) {
+                    points = points.filter(p => p.id !== clickedPoint.id);
+                    connections = connections.filter(c => c.from !== clickedPoint.id && c.to !== clickedPoint.id);
+                    updatePointsList();
+                    draw();
+                }
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const screenX = e.clientX - rect.left;
+            const screenY = e.clientY - rect.top;
+
+            // Handle compass rotation
+            if (compassDragging) {
+                const dx = screenX - compassX;
+                const dy = screenY - compassY;
+                compassRotation = Math.atan2(dx, -dy); // atan2(x, -y) to get angle from north
+                draw();
+                return;
+            }
+
+            // Handle panning
+            if (isPanning) {
+                const deltaX = screenX - lastMouseX;
+                const deltaY = screenY - lastMouseY;
+                panX += deltaX;
+                panY += deltaY;
+                lastMouseX = screenX;
+                lastMouseY = screenY;
+                draw();
+                return;
+            }
+
+            if (!dragging) return;
+
+            // Transform to world coordinates
+            const world = screenToWorld(screenX, screenY);
+            const x = world.x;
+            const y = world.y;
+
+            if (draggingControlPoint || dragControlPoint) {
+                // Move control point
+                const cp = draggingControlPoint || dragControlPoint;
+                cp.connection.controlX = x;
+                cp.connection.controlY = y;
+                draw();
+            } else if (selectedPoint || dragPoint) {
+                // Move regular point
+                const pt = selectedPoint || dragPoint;
+                pt.x = x;
+                pt.y = y;
+                draw();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            dragging = false;
+            draggingControlPoint = null;
+            dragControlPoint = null;
+            compassDragging = false;
+            if (isPanning) {
+                isPanning = false;
+                canvas.style.cursor = mode === 'drag' ? 'move' : mode === 'delete' ? 'not-allowed' : 'crosshair';
+            }
+            if (mode === 'drag') {
+                selectedPoint = null;
+                dragPoint = null;
+                draw();
+            }
+        });
+
+        // Mouse wheel zoom
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // Get world position before zoom
+            const worldBefore = screenToWorld(mouseX, mouseY);
+            
+            // Update zoom
+            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+            zoom *= zoomFactor;
+            
+            // Clamp zoom
+            zoom = Math.max(0.1, Math.min(5, zoom));
+            
+            // Get world position after zoom
+            const worldAfter = screenToWorld(mouseX, mouseY);
+            
+            // Adjust pan to keep mouse position stable
+            panX += (worldAfter.x - worldBefore.x) * zoom;
+            panY += (worldAfter.y - worldBefore.y) * zoom;
+            
+            draw();
+        }, { passive: false });
+
+        // Right-click to edit
+        canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const screenX = e.clientX - rect.left;
+            const screenY = e.clientY - rect.top;
+            
+            // Transform to world coordinates
+            const world = screenToWorld(screenX, screenY);
+            const x = world.x;
+            const y = world.y;
+
+            // Check if clicking on a connection
+            const clickedConnection = findConnectionAt(x, y);
+            if (clickedConnection) {
+                openConnectionEditor(clickedConnection, e.clientX, e.clientY);
+                return;
+            }
+
+            // Check if clicking on a point
+            const clickedPoint = findPointAt(x, y);
+            if (clickedPoint) {
+                openNoteEditor(clickedPoint, e.clientX, e.clientY);
+            }
+        });
+
+        // Helper functions
+        function findPointAt(x, y) {
+            return points.find(p => {
+                const dist = Math.sqrt((p.x - x) ** 2 + (p.y - y) ** 2);
+                return dist < 25;
+            });
+        }
+
+        function findConnectionAt(x, y) {
+            const tolerance = 8;
+            
+            for (let conn of connections) {
+                const p1 = points.find(p => p.id === conn.from);
+                const p2 = points.find(p => p.id === conn.to);
+                if (!p1 || !p2) continue;
+
+                if (conn.curved && conn.controlX !== undefined && conn.controlY !== undefined) {
+                    // Check curved line - sample multiple points along the curve
+                    for (let t = 0; t <= 1; t += 0.05) {
+                        const curveX = (1-t)*(1-t)*p1.x + 2*(1-t)*t*conn.controlX + t*t*p2.x;
+                        const curveY = (1-t)*(1-t)*p1.y + 2*(1-t)*t*conn.controlY + t*t*p2.y;
+                        const dist = Math.sqrt((curveX - x) ** 2 + (curveY - y) ** 2);
+                        if (dist < tolerance) {
+                            return conn;
+                        }
+                    }
+                } else {
+                    // Check straight line
+                    const dist = pointToLineDistance(x, y, p1.x, p1.y, p2.x, p2.y);
+                    if (dist < tolerance) {
+                        // Make sure click is between the two points
+                        const minX = Math.min(p1.x, p2.x) - tolerance;
+                        const maxX = Math.max(p1.x, p2.x) + tolerance;
+                        const minY = Math.min(p1.y, p2.y) - tolerance;
+                        const maxY = Math.max(p1.y, p2.y) + tolerance;
+                        if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
+                            return conn;
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        function findControlPointAt(x, y) {
+            const tolerance = 15;
+            
+            for (let conn of connections) {
+                if (conn.curved && conn.controlX !== undefined && conn.controlY !== undefined) {
+                    const dist = Math.sqrt((conn.controlX - x) ** 2 + (conn.controlY - y) ** 2);
+                    if (dist < tolerance) {
+                        return { connection: conn, x: conn.controlX, y: conn.controlY };
+                    }
+                }
+            }
+            return null;
+        }
+
+        function pointToLineDistance(px, py, x1, y1, x2, y2) {
+            const A = px - x1;
+            const B = py - y1;
+            const C = x2 - x1;
+            const D = y2 - y1;
+
+            const dot = A * C + B * D;
+            const lenSq = C * C + D * D;
+            const param = lenSq !== 0 ? dot / lenSq : -1;
+
+            let xx, yy;
+
+            if (param < 0) {
+                xx = x1;
+                yy = y1;
+            } else if (param > 1) {
+                xx = x2;
+                yy = y2;
+            } else {
+                xx = x1 + param * C;
+                yy = y1 + param * D;
+            }
+
+            const dx = px - xx;
+            const dy = py - yy;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        // Draw function
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Apply zoom and pan transformation
+            ctx.save();
+            applyTransform(ctx);
+            
+            // Draw connections
+            connections.forEach(conn => {
+                const p1 = points.find(p => p.id === conn.from);
+                const p2 = points.find(p => p.id === conn.to);
+                if (p1 && p2) {
+                    const pathType = conn.pathType || 'normal';
+                    const style = pathStyles[pathType];
+                    
+                    // Use custom color for normal paths if specified
+                    let strokeColor = style.color;
+                    if (pathType === 'normal' && conn.pathColor) {
+                        const colorMap = {
+                            'blue': '#4a90e2',
+                            'green': '#27ae60',
+                            'red': '#e74c3c'
+                        };
+                        strokeColor = colorMap[conn.pathColor] || style.color;
+                    }
+                    
+                    ctx.strokeStyle = strokeColor;
+                    ctx.lineWidth = style.width;
+                    ctx.setLineDash(style.dash);
+                    
+                    ctx.beginPath();
+                    
+                    if (conn.curved && conn.controlX !== undefined && conn.controlY !== undefined) {
+                        // Draw quadratic curve
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.quadraticCurveTo(conn.controlX, conn.controlY, p2.x, p2.y);
+                        ctx.stroke();
+                        
+                        // Draw control point (visible in drag mode)
+                        if (mode === 'drag') {
+                            ctx.fillStyle = '#ff6b6b';
+                            ctx.strokeStyle = '#c92a2a';
+                            ctx.lineWidth = 2;
+                            ctx.setLineDash([]);
+                            ctx.beginPath();
+                            ctx.arc(conn.controlX, conn.controlY, 8, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.stroke();
+                            
+                            // Draw helper lines
+                            ctx.strokeStyle = '#aaa';
+                            ctx.lineWidth = 1;
+                            ctx.setLineDash([3, 3]);
+                            ctx.beginPath();
+                            ctx.moveTo(p1.x, p1.y);
+                            ctx.lineTo(conn.controlX, conn.controlY);
+                            ctx.lineTo(p2.x, p2.y);
+                            ctx.stroke();
+                            ctx.setLineDash([]);
+                        }
+                        
+                        // Draw arrow at end
+                        const t = 0.95;
+                        const endX = (1-t)*(1-t)*p1.x + 2*(1-t)*t*conn.controlX + t*t*p2.x;
+                        const endY = (1-t)*(1-t)*p1.y + 2*(1-t)*t*conn.controlY + t*t*p2.y;
+                        
+                        // Calculate tangent for arrow direction
+                        const dt = 0.01;
+                        const t1 = Math.max(0, t - dt);
+                        const x1 = (1-t1)*(1-t1)*p1.x + 2*(1-t1)*t1*conn.controlX + t1*t1*p2.x;
+                        const y1 = (1-t1)*(1-t1)*p1.y + 2*(1-t1)*t1*conn.controlY + t1*t1*p2.y;
+                        
+                        const angle = Math.atan2(endY - y1, endX - x1);
+                        const arrowSize = 10;
+                        
+                        ctx.fillStyle = strokeColor; // Use the same color as the path
+                        ctx.setLineDash([]);
+                        ctx.beginPath();
+                        ctx.moveTo(endX, endY);
+                        ctx.lineTo(
+                            endX - arrowSize * Math.cos(angle - Math.PI / 6),
+                            endY - arrowSize * Math.sin(angle - Math.PI / 6)
+                        );
+                        ctx.lineTo(
+                            endX - arrowSize * Math.cos(angle + Math.PI / 6),
+                            endY - arrowSize * Math.sin(angle + Math.PI / 6)
+                        );
+                        ctx.closePath();
+                        ctx.fill();
+                        
+                        // Draw textured art along the curve
+                        drawTexturedPath(ctx, p1, p2, conn, style);
+                    } else {
+                        // Draw straight line
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                        
+                        // Draw arrow
+                        const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                        const arrowSize = 10;
+                        ctx.fillStyle = strokeColor; // Use the same color as the path
+                        ctx.setLineDash([]);
+                        ctx.beginPath();
+                        ctx.moveTo(p2.x, p2.y);
+                        ctx.lineTo(
+                            p2.x - arrowSize * Math.cos(angle - Math.PI / 6),
+                            p2.y - arrowSize * Math.sin(angle - Math.PI / 6)
+                        );
+                        ctx.lineTo(
+                            p2.x - arrowSize * Math.cos(angle + Math.PI / 6),
+                            p2.y - arrowSize * Math.sin(angle + Math.PI / 6)
+                        );
+                        ctx.closePath();
+                        ctx.fill();
+                        
+                        // Draw textured art along the straight line
+                        drawTexturedPath(ctx, p1, p2, conn, style);
+                    }
+                    
+                    ctx.setLineDash([]);
+                }
+            });
+            
+            // Draw points
+            points.forEach(point => {
+                const isSelected = selectedPoint && selectedPoint.id === point.id;
+                const isHighlighted = highlightedPoints.has(point.id);
+                
+                // Calculate point size based on zoom - INVERTED
+                const baseSize = 25;
+                
+                // INVERTED LOGIC:
+                // When zooming IN (zoom > 1): points SHRINK (minimum 0.8x = 20px)
+                // When zooming OUT (zoom < 1): points GROW to stay visible (max 2x = 50px)
+                let pointSize;
+                if (zoom >= 1) {
+                    // Zoom in: shrink points, but not below 0.8x base size
+                    const shrinkFactor = 1 / zoom; // Inverse of zoom
+                    pointSize = baseSize * Math.max(0.8, shrinkFactor);
+                } else {
+                    // Zoom out: grow points to compensate
+                    const growthFactor = 1 / zoom;
+                    pointSize = baseSize * Math.min(growthFactor, 2.0); // Cap at 2x
+                }
+                
+                // Base color - black points
+                let fillColor = '#000000'; // Black
+                if (isHighlighted) {
+                    fillColor = '#ffeb3b'; // Bright yellow for search results
+                }
+                if (isSelected) {
+                    fillColor = '#4a90e2'; // Blue for selected overrides yellow
+                }
+                
+                ctx.fillStyle = fillColor;
+                ctx.strokeStyle = isHighlighted ? '#fbc02d' : '#ffffff'; // White border normally, yellow if highlighted
+                ctx.lineWidth = isHighlighted ? 4 : 3; // Thicker border if highlighted
+                
+                // Draw shape based on point.shape property
+                const shape = point.shape || 'circle';
+                ctx.beginPath();
+                
+                if (shape === 'square') {
+                    // Draw square
+                    ctx.rect(point.x - pointSize, point.y - pointSize, pointSize * 2, pointSize * 2);
+                } else if (shape === 'triangle') {
+                    // Draw equilateral triangle pointing up
+                    const height = pointSize * 1.732; // sqrt(3) for equilateral triangle
+                    ctx.moveTo(point.x, point.y - height * 0.67); // Top
+                    ctx.lineTo(point.x - pointSize, point.y + height * 0.33); // Bottom left
+                    ctx.lineTo(point.x + pointSize, point.y + height * 0.33); // Bottom right
+                    ctx.closePath();
+                } else {
+                    // Draw circle (default)
+                    ctx.arc(point.x, point.y, pointSize, 0, Math.PI * 2);
+                }
+                
+                ctx.fill();
+                ctx.stroke();
+                
+                // Add glow effect for highlighted points
+                if (isHighlighted && !isSelected) {
+                    ctx.shadowColor = '#ffeb3b';
+                    ctx.shadowBlur = 15;
+                    ctx.strokeStyle = '#fbc02d';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    
+                    if (shape === 'square') {
+                        ctx.rect(point.x - pointSize, point.y - pointSize, pointSize * 2, pointSize * 2);
+                    } else if (shape === 'triangle') {
+                        const height = pointSize * 1.732;
+                        ctx.moveTo(point.x, point.y - height * 0.67);
+                        ctx.lineTo(point.x - pointSize, point.y + height * 0.33);
+                        ctx.lineTo(point.x + pointSize, point.y + height * 0.33);
+                        ctx.closePath();
+                    } else {
+                        ctx.arc(point.x, point.y, pointSize, 0, Math.PI * 2);
+                    }
+                    
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                }
+                
+                // Draw point name inside circle
+                ctx.fillStyle = isSelected ? '#ffffff' : (isHighlighted ? '#000000' : '#ffffff'); // White text on black, black on yellow
+                ctx.font = `bold ${Math.max(8, pointSize * 0.44)}px Arial`; // Scale font with point size
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // Truncate long names
+                let displayName = point.name;
+                const maxChars = Math.floor(pointSize / 3);
+                if (displayName.length > maxChars) {
+                    displayName = displayName.substring(0, maxChars - 1) + '...';
+                }
+                ctx.fillText(displayName, point.x, point.y);
+                
+                // Calculate badge positions and sizes based on point size
+                const badgeSize = pointSize * 0.32;
+                const badgeOffset = pointSize * 0.72;
+                
+                // Draw monster indicator
+                if (point.monsters && point.monsters.length > 0) {
+                    ctx.fillStyle = '#e74c3c';
+                    ctx.beginPath();
+                    ctx.arc(point.x + badgeOffset, point.y - badgeOffset, badgeSize, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = `bold ${Math.max(6, badgeSize * 1.25)}px Arial`;
+                    ctx.fillText(point.monsters.length.toString(), point.x + badgeOffset, point.y - badgeOffset);
+                }
+                
+                // Draw inventory indicator
+                if (point.inventory && point.inventory.length > 0) {
+                    ctx.fillStyle = '#3498db';
+                    ctx.beginPath();
+                    ctx.arc(point.x - badgeOffset, point.y - badgeOffset, badgeSize, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = `bold ${Math.max(6, badgeSize * 1.25)}px Arial`;
+                    ctx.fillText(point.inventory.length.toString(), point.x - badgeOffset, point.y - badgeOffset);
+                }
+            });
+            
+            // Restore transform after drawing world objects
+            ctx.restore();
+            
+            // Draw compass rose (in screen space, not affected by zoom/pan)
+            drawCompass(ctx);
+        }
+
+        // Note editor
+        function openNoteEditor(point, x, y) {
+            editingPoint = point;
+            document.getElementById('pointName').value = point.name;
+            document.getElementById('pointNotes').value = point.notes;
+            document.getElementById('pointShape').value = point.shape || 'circle';
+            
+            // Ensure monsters and inventory arrays exist
+            if (!point.monsters) point.monsters = [];
+            if (!point.inventory) point.inventory = [];
+            
+            // Display monsters
+            updateMonstersList();
+            
+            // Display inventory
+            updateInventoryList();
+            
+            noteEditor.style.display = 'block';
+            noteEditor.style.left = Math.min(x, window.innerWidth - 420) + 'px';
+            noteEditor.style.top = Math.min(y, window.innerHeight - 500) + 'px';
+            
+            // Hide connection editor
+            document.getElementById('connection-editor').style.display = 'none';
+        }
+
+        function updateMonstersList() {
+            const list = document.getElementById('monstersList');
+            list.innerHTML = '';
+            
+            if (!editingPoint || !editingPoint.monsters) return;
+            
+            editingPoint.monsters.forEach((monster, index) => {
+                const item = document.createElement('div');
+                item.className = 'monster-item';
+                item.innerHTML = `
+                    <div class="monster-header">
+                        <span class="monster-name">⚔️ ${monster.name || 'Monster'}</span>
+                        <button class="delete-btn" onclick="deleteMonster(${index})">✕</button>
+                    </div>
+                    <div class="monster-stats">
+                        <span><span class="stat-label">ATK:</span> <input type="number" value="${monster.attack || 0}" onchange="updateMonsterStat(${index}, 'attack', this.value)" style="width: 50px; padding: 2px;"></span>
+                        <span><span class="stat-label">HP:</span> <input type="number" value="${monster.health || 0}" onchange="updateMonsterStat(${index}, 'health', this.value)" style="width: 50px; padding: 2px;"></span>
+                    </div>
+                    <input type="text" value="${monster.name || ''}" onchange="updateMonsterStat(${index}, 'name', this.value)" placeholder="Monster name" style="margin-top: 5px; width: 100%; padding: 4px;">
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function updateInventoryList() {
+            const list = document.getElementById('inventoryList');
+            list.innerHTML = '';
+            
+            if (!editingPoint || !editingPoint.inventory) return;
+            
+            editingPoint.inventory.forEach((item, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'inventory-item';
+                itemDiv.innerHTML = `
+                    <span>🎒 ${item}</span>
+                    <button class="delete-btn" onclick="deleteInventoryItem(${index})">✕</button>
+                `;
+                list.appendChild(itemDiv);
+            });
+        }
+
+        // Global functions for monster and inventory management
+        window.deleteMonster = function(index) {
+            if (editingPoint && editingPoint.monsters) {
+                editingPoint.monsters.splice(index, 1);
+                updateMonstersList();
+            }
+        };
+
+        window.updateMonsterStat = function(index, stat, value) {
+            if (editingPoint && editingPoint.monsters && editingPoint.monsters[index]) {
+                if (stat === 'attack' || stat === 'health') {
+                    editingPoint.monsters[index][stat] = parseInt(value) || 0;
+                } else {
+                    editingPoint.monsters[index][stat] = value;
+                }
+            }
+        };
+
+        window.deleteInventoryItem = function(index) {
+            if (editingPoint && editingPoint.inventory) {
+                editingPoint.inventory.splice(index, 1);
+                updateInventoryList();
+            }
+        };
+
+        function closeNoteEditor() {
+            noteEditor.style.display = 'none';
+            editingPoint = null;
+        }
+
+        // Connection editor
+        function openConnectionEditor(connection, x, y) {
+            editingConnection = connection;
+            document.getElementById('pathType').value = connection.pathType || 'normal';
+            document.getElementById('pathColor').value = connection.pathColor || 'blue';
+            document.getElementById('curvedCheckbox').checked = connection.curved || false;
+            
+            const connEditor = document.getElementById('connection-editor');
+            connEditor.style.display = 'block';
+            connEditor.style.left = Math.min(x, window.innerWidth - 420) + 'px';
+            connEditor.style.top = Math.min(y, window.innerHeight - 300) + 'px';
+            
+            // Hide note editor
+            noteEditor.style.display = 'none';
+        }
+
+        function closeConnectionEditor() {
+            document.getElementById('connection-editor').style.display = 'none';
+            editingConnection = null;
+        }
+
+        document.getElementById('saveNoteBtn').addEventListener('click', () => {
+            if (editingPoint) {
+                editingPoint.name = document.getElementById('pointName').value || `Point ${editingPoint.id}`;
+                editingPoint.notes = document.getElementById('pointNotes').value;
+                editingPoint.shape = document.getElementById('pointShape').value || 'circle';
+                updatePointsList();
+                draw();
+                closeNoteEditor();
+            }
+        });
+
+        document.getElementById('cancelNoteBtn').addEventListener('click', closeNoteEditor);
+
+        // Add monster button
+        document.getElementById('addMonsterBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            if (editingPoint) {
+                if (!editingPoint.monsters) editingPoint.monsters = [];
+                editingPoint.monsters.push({
+                    name: 'New Monster',
+                    attack: 5,
+                    health: 5
+                });
+                updateMonstersList();
+            }
+        });
+
+        // Add inventory item button
+        document.getElementById('addInventoryBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            const input = document.getElementById('newInventoryItem');
+            const itemName = input.value.trim();
+            if (editingPoint && itemName) {
+                if (!editingPoint.inventory) editingPoint.inventory = [];
+                editingPoint.inventory.push(itemName);
+                input.value = '';
+                updateInventoryList();
+            }
+        });
+
+        // Allow Enter key to add inventory item
+        document.getElementById('newInventoryItem').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('addInventoryBtn').click();
+            }
+        });
+
+        document.getElementById('saveConnectionBtn').addEventListener('click', () => {
+            if (editingConnection) {
+                const wasCurved = editingConnection.curved;
+                editingConnection.pathType = document.getElementById('pathType').value;
+                editingConnection.pathColor = document.getElementById('pathColor').value || 'blue';
+                editingConnection.curved = document.getElementById('curvedCheckbox').checked;
+                
+                // If just enabled curve and no control point exists, create a default one at midpoint
+                if (editingConnection.curved && !wasCurved) {
+                    const p1 = points.find(p => p.id === editingConnection.from);
+                    const p2 = points.find(p => p.id === editingConnection.to);
+                    if (p1 && p2) {
+                        // Create control point offset perpendicular to the line
+                        const midX = (p1.x + p2.x) / 2;
+                        const midY = (p1.y + p2.y) / 2;
+                        const dx = p2.x - p1.x;
+                        const dy = p2.y - p1.y;
+                        const length = Math.sqrt(dx * dx + dy * dy);
+                        const offsetDist = length * 0.2; // 20% of line length
+                        
+                        // Perpendicular offset
+                        editingConnection.controlX = midX - (dy / length) * offsetDist;
+                        editingConnection.controlY = midY + (dx / length) * offsetDist;
+                    }
+                } else if (!editingConnection.curved) {
+                    // If disabling curve, remove control point data
+                    delete editingConnection.controlX;
+                    delete editingConnection.controlY;
+                }
+                
+                draw();
+                closeConnectionEditor();
+            }
+        });
+
+        document.getElementById('deleteConnectionBtn').addEventListener('click', () => {
+            if (editingConnection && confirm('Supprimer cette connexion ?')) {
+                connections = connections.filter(c => c !== editingConnection);
+                draw();
+                closeConnectionEditor();
+            }
+        });
+
+        document.getElementById('cancelConnectionBtn').addEventListener('click', closeConnectionEditor);
+
+        // Points list
+        function updatePointsList() {
+            const list = document.getElementById('pointsList');
+            list.innerHTML = '';
+            
+            points.forEach(point => {
+                const item = document.createElement('div');
+                const isHighlighted = highlightedPoints.has(point.id);
+                
+                item.className = 'point-item';
+                if (isHighlighted) {
+                    item.style.background = '#fff9c4'; // Light yellow for search results
+                    item.style.border = '2px solid #fbc02d';
+                }
+                
+                // Build info badges
+                let badges = '';
+                if (point.monsters && point.monsters.length > 0) {
+                    badges += `<span style="background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-right: 5px;">⚔️ ${point.monsters.length}</span>`;
+                }
+                if (point.inventory && point.inventory.length > 0) {
+                    badges += `<span style="background: #3498db; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px;">🎒 ${point.inventory.length}</span>`;
+                }
+                
+                item.innerHTML = `
+                    <div class="point-name">${point.id}. ${point.name}</div>
+                    ${badges ? `<div style="margin: 5px 0;">${badges}</div>` : ''}
+                    ${point.notes ? `<div class="point-notes">${point.notes}</div>` : ''}
+                `;
+                item.addEventListener('click', (e) => {
+                    openNoteEditor(point, e.clientX, e.clientY);
+                });
+                list.appendChild(item);
+            });
+        }
+
+        // Save/Load
+        const saveBtn = document.getElementById('saveBtn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                try {
+                    const data = {
+                        points: points,
+                        connections: connections,
+                        nextId: nextId,
+                        zoom: zoom,
+                        panX: panX,
+                        panY: panY,
+                        compassRotation: compassRotation
+                    };
+                    const json = JSON.stringify(data, null, 2);
+                    const blob = new Blob([json], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'story-map.json';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } catch (error) {
+                    alert('Erreur lors de la sauvegarde: ' + error.message);
+                    console.error(error);
+                }
+            });
+        }
+
+        const loadBtn = document.getElementById('loadBtn');
+        if (loadBtn) {
+            loadBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            const data = JSON.parse(event.target.result);
+                            points = data.points || [];
+                            connections = data.connections || [];
+                            nextId = data.nextId || 1;
+                            zoom = data.zoom || 1;
+                            panX = data.panX || 0;
+                            panY = data.panY || 0;
+                            compassRotation = data.compassRotation || 0;
+                            draw();
+                            updatePointsList();
+                        } catch (error) {
+                            alert('Erreur lors du chargement: ' + error.message);
+                            console.error(error);
+                        }
+                    };
+                    reader.readAsText(file);
+                };
+                input.click();
+            });
+        }
+
+        // Texture loading buttons
+        function loadTextureImage(textureType) {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            pathTextures[textureType] = img;
+                            draw();
+                            alert(`Texture ${textureType} chargée avec succès!`);
+                        };
+                        img.onerror = () => {
+                            alert('Erreur lors du chargement de l\'image');
+                        };
+                        img.src = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+            input.click();
+        }
+
+        document.getElementById('loadCaveTexture').addEventListener('click', () => loadTextureImage('cave'));
+        document.getElementById('loadWaterTexture').addEventListener('click', () => loadTextureImage('water'));
+        document.getElementById('loadDirtTexture').addEventListener('click', () => loadTextureImage('dirt'));
+        document.getElementById('loadStairsTexture').addEventListener('click', () => loadTextureImage('stairs'));
+
+        // Search input
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                performSearch(e.target.value);
+                updatePointsList(); // Update sidebar to show highlights
+            });
+        }
+
+        // Clear search button
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                performSearch('');
+                updatePointsList();
+            });
+        }
+
+        // Initial draw
+        draw();
+    </script>
+</body>
+</html>
