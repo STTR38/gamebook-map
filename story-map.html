@@ -400,31 +400,19 @@
                 </div>
             </div>
 
-            <div class="controls">
-                <h2>Textures</h2>
-                <div style="font-size: 11px; color: #666; margin-bottom: 8px;">
-                    Textures générées automatiquement ✨<br>
-                    Vous pouvez remplacer avec vos propres images :
-                </div>
-                <button id="loadCaveTexture" style="font-size: 12px; padding: 8px;">🏔️ Cave</button>
-                <button id="loadWaterTexture" style="font-size: 12px; padding: 8px;">🌊 Water</button>
-                <button id="loadDirtTexture" style="font-size: 12px; padding: 8px;">🛤️ Dirt</button>
-                <button id="loadStairsTexture" style="font-size: 12px; padding: 8px;">🪜 Stairs</button>
-            </div>
-
             <div class="info-text">
-                <strong>Comment utiliser :</strong><br>
-                • Cliquez "Add Points" puis sur le canevas pour créer des points<br>
-                • Cliquez "Link Points" puis sur deux points pour les connecter<br>
-                • <strong>Clic droit sur une connexion</strong> pour changer le type ou activer la courbe<br>
-                • Utilisez "Drag Points" pour déplacer les points et les courbes<br>
-                • Cliquez sur un point pour éditer son nom/notes<br>
-                • <strong>Molette</strong> pour zoomer, <strong>Shift+Drag</strong> pour déplacer la vue<br>
-                • <strong>Boussole</strong> : cliquez et tournez pour changer l'orientation<br>
-                • Mode Delete pour supprimer points/liaisons
+                <strong>How to use :</strong><br>
+                • Click on "Add Points" then on the canvas to add points<br>
+                • Click on "Link Points" then on two points to link them<br>
+                • <strong>Right-click on a link</strong> to change it's type or the curve<br>
+                • Use "Drag Points" to move points and modify curves<br>
+                • Right-click on a point to modify it's name/notes<br>
+                • <strong>Scroll</strong> to zoom, <strong>Shift+Drag</strong> to move the map<br>
+                • <strong>Compass</strong> : click and turn to change orientation<br>
+                • Mode Delete to delete points/links
             </div>
 
-            <h2>Points d'intérêt</h2>
+            <h2>Interest Points</h2>
             <div id="pointsList"></div>
         </div>
 
@@ -438,10 +426,10 @@
             <input type="text" id="pointName" placeholder="Point name">
             <textarea id="pointNotes" placeholder="Add notes about this story point..."></textarea>
             
-            <label style="margin-top: 10px; display: block;">Forme du point:</label>
+            <label style="margin-top: 10px; display: block;">Point shape:</label>
             <select id="pointShape" style="width: 100%; padding: 8px; margin: 8px 0; background: #f5f5f5; border: 1px solid #4a90e2; border-radius: 4px;">
-                <option value="circle">⚫ Cercle</option>
-                <option value="square">⬛ Carré</option>
+                <option value="circle">⚫ Circle</option>
+                <option value="square">⬛ Square</option>
                 <option value="triangle">🔺 Triangle</option>
             </select>
             
@@ -465,7 +453,7 @@
         <!-- Connection Editor -->
         <div id="connection-editor">
             <h3>Edit Connection</h3>
-            <label>Type de chemin:</label>
+            <label>Path type:</label>
             <select id="pathType">
                 <option value="normal">Normal Path</option>
                 <option value="cave">🏔️ Cave</option>
@@ -473,17 +461,17 @@
                 <option value="dirt">🛤️ Dirt Path</option>
                 <option value="stairs">🪜 Stairs</option>
             </select>
-            <label>Couleur (Normal Path seulement):</label>
+            <label>Color (Normal Path only):</label>
             <select id="pathColor">
-                <option value="blue">🔵 Bleu</option>
-                <option value="green">🟢 Vert</option>
-                <option value="red">🔴 Rouge</option>
+                <option value="blue">🔵 Blue</option>
+                <option value="green">🟢 Green</option>
+                <option value="red">🔴 Red</option>
             </select>
             <label>
                 <input type="checkbox" id="curvedCheckbox">
-                Ligne courbe
+                Curved Line
             </label>
-            <div class="curve-hint">Activez pour créer une courbe. Utilisez "Drag Points" pour ajuster.</div>
+            <div class="curve-hint">Activate to create a curved path. Adjust with "Drag Points".</div>
             <div class="editor-buttons">
                 <button id="saveConnectionBtn">Save</button>
                 <button id="deleteConnectionBtn" style="background: #e74c3c;">Delete</button>
@@ -495,11 +483,11 @@
     <!-- Custom Confirm Dialog -->
     <div id="confirm-overlay"></div>
     <div id="confirm-dialog">
-        <h3>Confirmation</h3>
+        <h3>Are you sure ?</h3>
         <p id="confirm-message"></p>
         <div class="confirm-buttons">
-            <button id="confirm-yes" style="background: #e74c3c;">Oui, supprimer</button>
-            <button id="confirm-no">Annuler</button>
+            <button id="confirm-yes" style="background: #e74c3c;">Yes, delete</button>
+            <button id="confirm-no">Cancel</button>
         </div>
     </div>
 
@@ -1510,23 +1498,15 @@
                     e.preventDefault();
                     e.stopPropagation();
                     
-                    console.log('Clear All clicked');
-                    console.log('Points before:', points.length);
-                    console.log('Connections before:', connections.length);
-                    
-                    const userConfirmed = await showConfirmDialog('Voulez-vous vraiment supprimer tous les points et connexions ? Cette action est irréversible.');
-                    console.log('User confirmed:', userConfirmed);
+                    const userConfirmed = await showConfirmDialog('Are you sure you want to delete all points and connections ? There is no coming back.');
                     
                     if (userConfirmed) {
-                        console.log('Starting clear all...');
                         
                         // Reset all data
                         points = [];
                         connections = [];
                         nextId = 1;
-                        
-                        console.log('Arrays cleared. Points:', points.length, 'Connections:', connections.length);
-                        
+                                                
                         // Reset selection states
                         selectedPoint = null;
                         linkStart = null;
